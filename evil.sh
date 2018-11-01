@@ -1,30 +1,51 @@
 #!/bin/bash
 # For Alpine Linux
 # GREP returns exit code 0 if line found and 1 for no line found
+
+shopt -s globstar
 out=0
-grep -r "^\s*create_resources" /var/tmp/site/profile/manifests/
-if [ $? -eq 0 ]; then
-  out=`expr $out + 1`
-  echo "Found 'create_resources' in site/profile/manifests/"
-fi
-grep -r "^\s*create_resources" /var/tmp/site/role/manifests/
-if [ $? -eq 0 ]; then
-  out=`expr $out + 1`
-  echo "Found 'create_resources' in site/role/manifests/"
-fi
-egrep -r "^.*file\s*\(.*\)" /var/tmp/site/profile/manifests/
-if [ $? -eq 0 ]; then
-  out=`expr $out + 1`
-  echo "Found 'file' function in site/profile/manifests/"
-fi
-egrep -r "^.*file\s*\(.*\)" /var/tmp/site/role/manifests/
-if [ $? -eq 0 ]; then
-  out=`expr $out + 1`
-  echo "Found 'file' function in site/role/manifests/"
-fi
-if [ $out -gt 0 ]; then
-  exit 1
+
+for f in site/profile/**/**.pp; do
+   [[ $f =~ plans/ ]] && continue
+
+   if ! grep "^\s*create_resources" "$f"; then
+      echo "SUCCESS: $f"
+   else
+      echo "FAILED: $f"
+      failures_secruity+=("$f")
+   fi
+
+   if ! egrep "^.*file\s*\(.*\)" "$f"; then
+      echo "SUCCESS: $f"
+   else
+      echo "FAILED: $f"
+      failures_security+=("$f")
+   fi
+done
+
+for f in site/role/**/**.pp; do
+   [[ $f =~ plans/ ]] && continue
+
+   if ! grep "^\s*create_resources" "$f"; then
+      echo "SUCCESS: $f"
+   else
+      echo "FAILED: $f"
+      failures_security+=("$f")
+   fi
+
+   if ! egrep "^.*file\s*\(.*\)" "$f"; then
+      echo "SUCCESS: $f"
+   else
+      echo "FAILED: $f"
+      failures_security+=("$f")
+   fi
+done
+
+if (( ${#failures_security[@]} > 0 )); then
+   echo "Security validation on the Control Repo has failed in the following manifests:"
+   echo -e "\t ${failures_security[@]}"
+   exit 1
 else
-  echo 'Security tests passed'
-  exit 0
+   echo "Syntax validation on the Control Repo has succeeded."
+   exit 0
 fi

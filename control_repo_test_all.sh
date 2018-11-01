@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 out=0
 echo 'Checking Puppetfile ...'
 /bin/bash /root/puppetfile.sh
@@ -26,7 +27,11 @@ if [ $? -ne 0 ]; then
   echo 'Lint tests failed!'
 fi
 echo 'Starting onceover tests ...'
-/usr/bin/onceover run spec
+if [ "$1" != "" ]; then
+  /usr/bin/onceover run spec --puppetfile $1
+else
+  /usr/bin/onceover run spec
+fi
 if [ $? -ne 0 ]; then
   out=`expr $out + 1`
   echo 'Onceover tests failed!'
